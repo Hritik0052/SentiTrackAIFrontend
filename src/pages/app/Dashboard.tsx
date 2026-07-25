@@ -20,7 +20,12 @@ import { Button } from "../../components/ui/Button"
 import { ApiError } from "../../lib/apiClient"
 import { analyticsService } from "../../services/analyticsService"
 import { usePageMeta } from "../../hooks/usePageMeta"
-import type { DashboardAnalytics, MonthlyAnalytics, MoodDistribution } from "../../types/analytics"
+import type {
+  DashboardAnalytics,
+  MonthlyAnalytics,
+  MoodDistribution,
+  YearlyAnalytics,
+} from "../../types/analytics"
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -30,6 +35,7 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardAnalytics | null>(null)
   const [mood, setMood] = useState<MoodDistribution | null>(null)
   const [monthly, setMonthly] = useState<MonthlyAnalytics | null>(null)
+  const [yearly, setYearly] = useState<YearlyAnalytics | null>(null)
   const [year, setYear] = useState(CURRENT_YEAR)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -41,15 +47,17 @@ export default function DashboardPage() {
       setIsLoading(true)
       setError(null)
       try {
-        const [dashboardData, moodData, monthlyData] = await Promise.all([
+        const [dashboardData, moodData, monthlyData, yearlyData] = await Promise.all([
           analyticsService.dashboard(),
           analyticsService.moodDistribution(),
           analyticsService.monthly(year),
+          analyticsService.yearly(),
         ])
         if (cancelled) return
         setDashboard(dashboardData)
         setMood(moodData)
         setMonthly(monthlyData)
+        setYearly(yearlyData)
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof ApiError ? err.message : "Couldn't load your analytics.")
@@ -73,7 +81,7 @@ export default function DashboardPage() {
     )
   }
 
-  if (error || !dashboard || !mood || !monthly) {
+  if (error || !dashboard || !mood || !monthly || !yearly) {
     return (
       <Container className="py-16">
         <EmptyState icon={Gauge} title="Couldn't load your dashboard" description={error ?? undefined} />
@@ -194,6 +202,58 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            {yearly.years.length > 0 && (
+              <div className="card-surface mt-6 p-6">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Yearly overview</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Entries and sentiment split by year
+                </p>
+                <div className="mt-6 overflow-x-auto">
+                  <table className="w-full min-w-[560px] border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-white/10">
+                        <th className="pb-3 pr-4 font-semibold">Year</th>
+                        <th className="pb-3 pr-4 font-semibold">Entries</th>
+                        <th className="pb-3 pr-4 font-semibold">Analyzed</th>
+                        <th className="pb-3 pr-4 font-semibold">Positive</th>
+                        <th className="pb-3 pr-4 font-semibold">Neutral</th>
+                        <th className="pb-3 pr-4 font-semibold">Negative</th>
+                        <th className="pb-3 pr-4 font-semibold">Avg. confidence</th>
+                        <th className="pb-3 font-semibold">Top emotion</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {yearly.years.map((row) => (
+                        <tr
+                          key={row.period}
+                          className="border-b border-slate-100 text-slate-700 last:border-0 dark:border-white/5 dark:text-slate-300"
+                        >
+                          <td className="py-3 pr-4 font-medium text-slate-900 dark:text-white">
+                            {row.period}
+                          </td>
+                          <td className="py-3 pr-4 tabular-nums">{row.entries}</td>
+                          <td className="py-3 pr-4 tabular-nums">{row.analyzed}</td>
+                          <td className="py-3 pr-4 tabular-nums text-emerald-600 dark:text-emerald-400">
+                            {row.sentiment_counts.positive}
+                          </td>
+                          <td className="py-3 pr-4 tabular-nums text-slate-500 dark:text-slate-400">
+                            {row.sentiment_counts.neutral}
+                          </td>
+                          <td className="py-3 pr-4 tabular-nums text-rose-600 dark:text-rose-400">
+                            {row.sentiment_counts.negative}
+                          </td>
+                          <td className="py-3 pr-4 tabular-nums">
+                            {Math.round(row.average_confidence * 100)}%
+                          </td>
+                          <td className="py-3 capitalize">{row.most_common_emotion ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </>
         )}
       </Container>
