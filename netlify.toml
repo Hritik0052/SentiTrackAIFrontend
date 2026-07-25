@@ -4,6 +4,11 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Vite bakes VITE_* vars into the client bundle by design — that's how the
+  # frontend gets its config. Netlify's secrets scanner doesn't know that and
+  # flags them as leaked secrets. None of these are secret (they're all public
+  # client config), so tell the scanner to skip them instead of disabling it.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_APP_NAME,VITE_APP_ENV,VITE_API_ROOT_URL,VITE_API_V1_PREFIX,VITE_API_TIMEOUT_MS,VITE_ENABLE_HEALTH_CHECK,VITE_HEALTH_CHECK_INTERVAL_MS,VITE_CONTACT_EMAIL"
 
 # Client-side routing (React Router) — let index.html handle every path.
 [[redirects]]
