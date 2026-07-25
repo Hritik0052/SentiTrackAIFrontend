@@ -1,6 +1,8 @@
 import axios, { AxiosError } from "axios"
+import type { InternalAxiosRequestConfig } from "axios"
 import { apiBaseUrl, env } from "../config/env"
 import { tokenStorage } from "./tokenStorage"
+import type { TokenPair } from "../types/auth"
 
 /**
  * SentiTrack AI backend wraps every handled error as:
@@ -52,27 +54,83 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+function toApiError(error: AxiosError<BackendErrorEnvelope>): ApiError {
+  if (error.response) {
+    const envelope = error.response.data
+    const type = envelope?.error?.type ?? "UnknownError"
+    const message = envelope?.error
+      ? extractMessage(envelope.error.detail)
+      : "The server returned an unexpected response."
+    return new ApiError(message, error.response.status, type)
+  }
+  if (error.request) {
+    return new ApiError(
+      "Could not reach SentiTrack AI. Check your connection and try again.",
+      0,
+      "NetworkError",
+    )
+  }
+  return new ApiError(error.message, 0, "RequestSetupError")
+}
+
+/** Dispatched when refresh-token rotation fails, so AuthContext can clear session state. */
+export const AUTH_LOGOUT_EVENT = "sentitrack:auth-logout"
+
+type RetryableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean }
+
+let isRefreshing = false
+let refreshWaiters: Array<(token: string | null) => void> = []
+
+function resolveWaiters(token: string | null) {
+  refreshWaiters.forEach((resolve) => resolve(token))
+  refreshWaiters = []
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<BackendErrorEnvelope>) => {
-    if (error.response) {
-      const envelope = error.response.data
-      const type = envelope?.error?.type ?? "UnknownError"
-      const message = envelope?.error
-        ? extractMessage(envelope.error.detail)
-        : "The server returned an unexpected response."
-      return Promise.reject(new ApiError(message, error.response.status, type))
+  async (error: AxiosError<BackendErrorEnvelope>) => {
+    const originalRequest = error.config as RetryableRequestConfig | undefined
+    const isAuthEndpoint =
+      originalRequest?.url?.includes("/auth/login") || originalRequest?.url?.includes("/auth/refresh")
+
+    if (error.response?.status !== 401 || !originalRequest || originalRequest._retry || isAuthEndpoint) {
+      return Promise.reject(toApiError(error))
     }
-    if (error.request) {
-      return Promise.reject(
-        new ApiError(
-          "Could not reach SentiTrack AI. Check your connection and try again.",
-          0,
-          "NetworkError",
-        ),
-      )
+
+    const refreshToken = tokenStorage.getRefreshToken()
+    if (!refreshToken) {
+      return Promise.reject(toApiError(error))
     }
-    return Promise.reject(new ApiError(error.message, 0, "RequestSetupError"))
+
+    originalRequest._retry = true
+
+    if (!isRefreshing) {
+      isRefreshing = true
+      try {
+        const { data } = await axios.post<TokenPair>(`${apiBaseUrl}/auth/refresh`, {
+          refresh_token: refreshToken,
+        })
+        tokenStorage.setTokens(data.access_token, data.refresh_token)
+        resolveWaiters(data.access_token)
+      } catch {
+        tokenStorage.clear()
+        resolveWaiters(null)
+        window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT))
+      } finally {
+        isRefreshing = false
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      refreshWaiters.push((token) => {
+        if (!token) {
+          reject(toApiError(error))
+          return
+        }
+        originalRequest.headers.set("Authorization", `Bearer ${token}`)
+        resolve(apiClient(originalRequest))
+      })
+    })
   },
 )
 

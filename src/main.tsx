@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client"
 import { BrowserRouter } from "react-router-dom"
 import App from "./App.tsx"
 import { AppToaster } from "./components/layout/AppToaster.tsx"
+import { AuthProvider } from "./context/AuthContext.tsx"
 import { ThemeProvider } from "./context/ThemeContext.tsx"
 import "./index.css"
 
@@ -10,8 +11,10 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <BrowserRouter>
-        <App />
-        <AppToaster />
+        <AuthProvider>
+          <App />
+          <AppToaster />
+        </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   </StrictMode>,
