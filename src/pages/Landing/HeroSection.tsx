@@ -1,11 +1,23 @@
 import { motion } from "framer-motion"
 import { ArrowRight, Sparkles } from "lucide-react"
+import toast from "react-hot-toast"
+import { useNavigate } from "react-router-dom"
 import { Button } from "../../components/ui/Button"
 import { Container } from "../../components/ui/Container"
 import { GradientBlobs } from "../../components/ui/GradientBlobs"
+import { useAuth } from "../../hooks/useAuth"
 import { MoodPreviewCard } from "./MoodPreviewCard"
 
 export function HeroSection() {
+  const { isAuthenticated, logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await logout()
+    toast.success("Logged out")
+    navigate("/", { replace: true })
+  }
+
   return (
     <section className="relative overflow-hidden pt-16 pb-24 sm:pt-24 sm:pb-32">
       <GradientBlobs />
@@ -47,12 +59,25 @@ export function HeroSection() {
               transition={{ duration: 0.6, delay: 0.25 }}
               className="mt-8 flex flex-col gap-3 sm:flex-row"
             >
-              <Button to="/register" size="lg" icon={<ArrowRight className="h-4.5 w-4.5" />}>
-                Get Started Free
-              </Button>
-              <Button to="/login" variant="secondary" size="lg">
-                Login
-              </Button>
+              {isAuthenticated ? (
+                <>
+                  <Button to="/app/journals" size="lg" icon={<ArrowRight className="h-4.5 w-4.5" />}>
+                    Open App
+                  </Button>
+                  <Button variant="secondary" size="lg" onClick={handleLogout}>
+                    Log Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button to="/register" size="lg" icon={<ArrowRight className="h-4.5 w-4.5" />}>
+                    Get Started Free
+                  </Button>
+                  <Button to="/login" variant="secondary" size="lg">
+                    Login
+                  </Button>
+                </>
+              )}
             </motion.div>
 
             <motion.p

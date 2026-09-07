@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { NavLink } from "react-router-dom"
+import toast from "react-hot-toast"
+import { NavLink, useNavigate } from "react-router-dom"
+import { useAuth } from "../../hooks/useAuth"
 import { Button } from "../ui/Button"
 import { Container } from "../ui/Container"
 import { Logo } from "./Logo"
@@ -14,6 +16,8 @@ const LINKS = [
 ]
 
 export function Navbar() {
+  const { isAuthenticated, logout } = useAuth()
+  const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -23,6 +27,12 @@ export function Navbar() {
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
+
+  async function handleLogout() {
+    await logout()
+    toast.success("Logged out")
+    navigate("/", { replace: true })
+  }
 
   return (
     <header
@@ -56,12 +66,25 @@ export function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           <ThemeToggle />
-          <Button to="/login" variant="ghost" size="md">
-            Login
-          </Button>
-          <Button to="/register" variant="primary" size="md">
-            Get Started
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Button to="/app/journals" variant="primary" size="md">
+                Open App
+              </Button>
+              <Button variant="ghost" size="md" onClick={handleLogout}>
+                Log Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button to="/login" variant="ghost" size="md">
+                Login
+              </Button>
+              <Button to="/register" variant="primary" size="md">
+                Get Started
+              </Button>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
@@ -106,12 +129,37 @@ export function Navbar() {
                 </NavLink>
               ))}
               <div className="mt-3 flex flex-col gap-2 border-t border-slate-200/70 pt-3 dark:border-white/10">
-                <Button to="/login" variant="secondary" size="md" onClick={() => setMenuOpen(false)}>
-                  Login
-                </Button>
-                <Button to="/register" variant="primary" size="md" onClick={() => setMenuOpen(false)}>
-                  Get Started
-                </Button>
+                {isAuthenticated ? (
+                  <>
+                    <Button
+                      to="/app/journals"
+                      variant="primary"
+                      size="md"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Open App
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        void handleLogout()
+                      }}
+                    >
+                      Log Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button to="/login" variant="secondary" size="md" onClick={() => setMenuOpen(false)}>
+                      Login
+                    </Button>
+                    <Button to="/register" variant="primary" size="md" onClick={() => setMenuOpen(false)}>
+                      Get Started
+                    </Button>
+                  </>
+                )}
               </div>
             </Container>
           </motion.div>
