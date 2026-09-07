@@ -4,8 +4,10 @@ import toast from "react-hot-toast"
 import { Button } from "../../components/ui/Button"
 import { Container } from "../../components/ui/Container"
 import { EmptyState } from "../../components/ui/EmptyState"
+import { ExportButton } from "../../components/ui/ExportButton"
 import { Spinner } from "../../components/ui/Spinner"
 import { ApiError } from "../../lib/apiClient"
+import { exportService } from "../../services/exportService"
 import { summaryService } from "../../services/summaryService"
 import { usePageMeta } from "../../hooks/usePageMeta"
 import type { WeeklySummary } from "../../types/summary"
@@ -76,13 +78,19 @@ export default function WeeklySummaryPage() {
               AI-generated recaps of your week, with gentle suggestions.
             </p>
           </div>
-          <Button
-            onClick={handleGenerate}
-            disabled={generating}
-            icon={generating ? undefined : <Sparkles className="h-4 w-4" />}
-          >
-            {generating ? "Generating..." : "Generate this week"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportButton
+              label="Export Excel"
+              onExport={() => exportService.weeklySummaries()}
+            />
+            <Button
+              onClick={handleGenerate}
+              disabled={generating}
+              icon={generating ? undefined : <Sparkles className="h-4 w-4" />}
+            >
+              {generating ? "Generating..." : "Generate this week"}
+            </Button>
+          </div>
         </div>
 
         <div className="mt-8">

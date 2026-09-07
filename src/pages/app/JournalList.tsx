@@ -4,9 +4,11 @@ import { BookOpen, Plus, Search } from "lucide-react"
 import { Button } from "../../components/ui/Button"
 import { Container } from "../../components/ui/Container"
 import { EmptyState } from "../../components/ui/EmptyState"
+import { ExportButton } from "../../components/ui/ExportButton"
 import { Pagination } from "../../components/ui/Pagination"
 import { Spinner } from "../../components/ui/Spinner"
 import { ApiError } from "../../lib/apiClient"
+import { exportService } from "../../services/exportService"
 import { journalService } from "../../services/journalService"
 import { usePageMeta } from "../../hooks/usePageMeta"
 import type { Journal, PaginatedResponse } from "../../types/journal"
@@ -82,9 +84,12 @@ export default function JournalListPage() {
               {data ? `${data.total} ${data.total === 1 ? "entry" : "entries"}` : "Loading your entries..."}
             </p>
           </div>
-          <Button to="/app/journals/new" icon={<Plus className="h-4 w-4" />}>
-            New Entry
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportButton label="Export Excel" onExport={() => exportService.journals()} />
+            <Button to="/app/journals/new" icon={<Plus className="h-4 w-4" />}>
+              New Entry
+            </Button>
+          </div>
         </div>
 
         <div className="relative mt-6 max-w-md">

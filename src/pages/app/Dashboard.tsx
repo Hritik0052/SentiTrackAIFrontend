@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Award,
   BookOpen,
@@ -16,18 +16,58 @@ import { StatTile } from "../../components/charts/StatTile"
 import { SentimentSplitBar } from "../../components/charts/SentimentSplitBar"
 import { RankedBarList } from "../../components/charts/RankedBarList"
 import { MonthlyTrendChart } from "../../components/charts/MonthlyTrendChart"
+import {
+  MoodTrendLineChart,
+  type TrendSeriesMode,
+} from "../../components/charts/MoodTrendLineChart"
+import { EmotionAreaChart } from "../../components/charts/EmotionAreaChart"
 import { Button } from "../../components/ui/Button"
+import { ExportButton } from "../../components/ui/ExportButton"
 import { ApiError } from "../../lib/apiClient"
 import { analyticsService } from "../../services/analyticsService"
+import { exportService } from "../../services/exportService"
 import { usePageMeta } from "../../hooks/usePageMeta"
 import type {
   DashboardAnalytics,
   MonthlyAnalytics,
   MoodDistribution,
+  MoodTrends,
   YearlyAnalytics,
 } from "../../types/analytics"
 
 const CURRENT_YEAR = new Date().getFullYear()
+
+function toIsoDate(d: Date): string {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function startOfWeek(d: Date): Date {
+  const copy = new Date(d)
+  const day = (copy.getDay() + 6) % 7 // Monday=0
+  copy.setDate(copy.getDate() - day)
+  copy.setHours(12, 0, 0, 0)
+  return copy
+}
+
+function shiftAnchor(anchor: Date, period: "week" | "month", direction: -1 | 1): Date {
+  const next = new Date(anchor)
+  if (period === "week") {
+    next.setDate(next.getDate() + direction * 7)
+  } else {
+    next.setMonth(next.getMonth() + direction)
+  }
+  return next
+}
+
+function formatRange(start: string, end: string): string {
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" }
+  const from = new Date(`${start}T00:00:00`).toLocaleDateString(undefined, opts)
+  const to = new Date(`${end}T00:00:00`).toLocaleDateString(undefined, opts)
+  return `${from} – ${to}`
+}
 
 export default function DashboardPage() {
   usePageMeta("Dashboard — SentiTrack AI")
@@ -36,9 +76,20 @@ export default function DashboardPage() {
   const [mood, setMood] = useState<MoodDistribution | null>(null)
   const [monthly, setMonthly] = useState<MonthlyAnalytics | null>(null)
   const [yearly, setYearly] = useState<YearlyAnalytics | null>(null)
+  const [moodTrends, setMoodTrends] = useState<MoodTrends | null>(null)
   const [year, setYear] = useState(CURRENT_YEAR)
+  const [trendPeriod, setTrendPeriod] = useState<"week" | "month">("week")
+  const [trendAnchor, setTrendAnchor] = useState(() => startOfWeek(new Date()))
+  const [seriesMode, setSeriesMode] = useState<TrendSeriesMode>("emotions")
   const [isLoading, setIsLoading] = useState(true)
+  const [trendsLoading, setTrendsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [trendsError, setTrendsError] = useState<string | null>(null)
+
+  const exportMonth = useMemo(() => {
+    const now = new Date()
+    return { year: now.getFullYear(), month: now.getMonth() + 1 }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -73,6 +124,35 @@ export default function DashboardPage() {
     }
   }, [year])
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadTrends() {
+      setTrendsLoading(true)
+      setTrendsError(null)
+      try {
+        const data = await analyticsService.moodTrends({
+          period: trendPeriod,
+          anchor: toIsoDate(trendAnchor),
+          top_emotions: 5,
+        })
+        if (!cancelled) setMoodTrends(data)
+      } catch (err) {
+        if (!cancelled) {
+          setTrendsError(err instanceof ApiError ? err.message : "Couldn't load mood trends.")
+          setMoodTrends(null)
+        }
+      } finally {
+        if (!cancelled) setTrendsLoading(false)
+      }
+    }
+
+    loadTrends()
+    return () => {
+      cancelled = true
+    }
+  }, [trendPeriod, trendAnchor])
+
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -90,16 +170,34 @@ export default function DashboardPage() {
   }
 
   const hasEntries = dashboard.total_entries > 0
+  const nextAnchor = shiftAnchor(trendAnchor, trendPeriod, 1)
+  const nextPeriodStart =
+    trendPeriod === "week"
+      ? startOfWeek(nextAnchor)
+      : new Date(nextAnchor.getFullYear(), nextAnchor.getMonth(), 1)
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const canGoNext = nextPeriodStart <= todayStart
 
   return (
     <section className="py-10 sm:py-14">
       <Container>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
-          Dashboard
-        </h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Your journaling activity and mood trends at a glance.
-        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
+              Dashboard
+            </h1>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Your journaling activity and mood trends at a glance.
+            </p>
+          </div>
+          {hasEntries && (
+            <ExportButton
+              label="Export this month"
+              onExport={() => exportService.monthlySummary(exportMonth)}
+            />
+          )}
+        </div>
 
         {!hasEntries ? (
           <div className="mt-8">
@@ -140,6 +238,94 @@ export default function DashboardPage() {
                 value={dashboard.most_common_emotion ?? "—"}
                 hint="Most frequent emotion"
               />
+            </div>
+
+            <div className="card-surface mt-6 p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Mood trends</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Overlapping lines for sentiment and top emotions
+                    {moodTrends ? ` · ${formatRange(moodTrends.start, moodTrends.end)}` : ""}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex rounded-full border border-slate-200 p-0.5 dark:border-white/10">
+                    {(["week", "month"] as const).map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        onClick={() => setTrendPeriod(period)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition ${
+                          trendPeriod === period
+                            ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                            : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                        }`}
+                      >
+                        {period === "week" ? "This week" : "This month"}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setTrendAnchor((d) => shiftAnchor(d, trendPeriod, -1))}
+                      aria-label="Previous period"
+                      className="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTrendAnchor((d) => shiftAnchor(d, trendPeriod, 1))}
+                      disabled={!canGoNext}
+                      aria-label="Next period"
+                      className="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:bg-white/10"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="flex rounded-full border border-slate-200 p-0.5 dark:border-white/10">
+                    {(
+                      [
+                        ["emotions", "Emotions"],
+                        ["sentiment", "Sentiment"],
+                        ["both", "Both"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setSeriesMode(value)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                          seriesMode === value
+                            ? "bg-brand-600 text-white"
+                            : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                {trendsLoading && (
+                  <div className="flex justify-center py-16">
+                    <Spinner />
+                  </div>
+                )}
+                {!trendsLoading && trendsError && (
+                  <p className="text-sm text-rose-600 dark:text-rose-400">{trendsError}</p>
+                )}
+                {!trendsLoading && !trendsError && moodTrends && (
+                  <div className="grid gap-8 lg:grid-cols-2">
+                    <MoodTrendLineChart trends={moodTrends} mode={seriesMode} />
+                    <EmotionAreaChart trends={moodTrends} />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-2">

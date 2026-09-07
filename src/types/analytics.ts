@@ -48,3 +48,29 @@ export interface MonthlyAnalytics {
 export interface YearlyAnalytics {
   years: PeriodAnalytics[]
 }
+
+export type MoodTrendPeriod = "week" | "month" | "custom"
+
+export interface MoodTrendBucket {
+  date: string
+  sentiment: SentimentCounts
+  emotions: Record<string, number>
+}
+
+export interface MoodTrends {
+  period: MoodTrendPeriod
+  start: string
+  end: string
+  granularity: "day"
+  buckets: MoodTrendBucket[]
+  series: {
+    sentiment: Array<"positive" | "neutral" | "negative">
+    emotions: string[]
+  }
+  totals: {
+    entries: number
+    analyzed: number
+    sentiment_counts: SentimentCounts
+    emotion_counts: Record<string, number>
+  }
+}

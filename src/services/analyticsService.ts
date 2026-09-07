@@ -3,6 +3,7 @@ import type {
   DashboardAnalytics,
   MonthlyAnalytics,
   MoodDistribution,
+  MoodTrends,
   YearlyAnalytics,
 } from "../types/analytics"
 
@@ -24,6 +25,24 @@ export const analyticsService = {
 
   async yearly(): Promise<YearlyAnalytics> {
     const { data } = await apiClient.get<YearlyAnalytics>("/analytics/yearly")
+    return data
+  },
+
+  async moodTrends(params: {
+    period?: "week" | "month"
+    anchor?: string
+    top_emotions?: number
+  } = {}): Promise<MoodTrends> {
+    const { data } = await apiClient.get<MoodTrends>("/analytics/mood-trends", { params })
+    return data
+  },
+
+  async moodTrendsCompare(params: {
+    from: string
+    to: string
+    top_emotions?: number
+  }): Promise<MoodTrends> {
+    const { data } = await apiClient.get<MoodTrends>("/analytics/mood-trends/compare", { params })
     return data
   },
 }
