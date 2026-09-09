@@ -1,11 +1,11 @@
 import { useState } from "react"
 import type { FormEvent } from "react"
-import { useNavigate } from "react-router-dom"
-import { Lock, Mail, Save, Trash2, User as UserIcon } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { Award, Lock, Mail, Save, Trash2, User as UserIcon } from "lucide-react"
 import toast from "react-hot-toast"
 import { Button } from "../../components/ui/Button"
 import { Container } from "../../components/ui/Container"
-import { GamificationPanel } from "../../components/badges/GamificationPanel"
+import { ProfileProgress } from "../../components/badges/ProfileProgress"
 import { ApiError } from "../../lib/apiClient"
 import { useAuth } from "../../hooks/useAuth"
 import { userService } from "../../services/userService"
@@ -72,28 +72,41 @@ export default function ProfilePage() {
   const inputBase =
     "w-full rounded-xl border border-slate-200 bg-white/60 py-3 pl-11 pr-4 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus-ring dark:border-white/10 dark:bg-white/5 dark:text-white"
 
+  const initial = user.name?.trim()?.[0]?.toUpperCase() ?? "?"
+
   return (
     <section className="py-10 sm:py-14">
       <Container className="max-w-4xl">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
-          Profile
-        </h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Manage your account details and track your journaling progress.
-        </p>
-
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Your progress</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Streaks, XP, challenges, and badges
-          </p>
-          <div className="mt-4">
-            <GamificationPanel compact />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-brand text-xl font-bold text-white shadow-lg shadow-brand-500/25">
+              {initial}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
+                {user.name}
+              </h1>
+              <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{user.email}</p>
+            </div>
           </div>
+          <Link
+            to="/app/achievements"
+            className="focus-ring inline-flex items-center gap-2 self-start rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-400 hover:text-brand-600 dark:border-white/10 dark:text-slate-200 dark:hover:border-brand-400 dark:hover:text-brand-300"
+          >
+            <Award className="h-4 w-4" />
+            All achievements
+          </Link>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate className="card-surface mt-6 p-6 sm:p-8">
-          <div>
+        <div className="mt-8">
+          <ProfileProgress />
+        </div>
+
+        <form onSubmit={handleSubmit} noValidate className="card-surface mt-8 p-6 sm:p-8">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">Account settings</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Update your name, email, or password.</p>
+
+          <div className="mt-6">
             <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
               Name
             </label>

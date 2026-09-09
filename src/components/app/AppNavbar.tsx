@@ -8,13 +8,13 @@ import { Logo } from "../layout/Logo"
 import { ThemeToggle } from "../layout/ThemeToggle"
 import { useAuth } from "../../hooks/useAuth"
 
+/** Primary app sections only — Achievements lives with profile actions */
 const LINKS = [
   { label: "Journals", to: "/app/journals", icon: BookOpen },
   { label: "Dashboard", to: "/app/dashboard", icon: BarChart3 },
   { label: "Summaries", to: "/app/summaries", icon: CalendarRange },
   { label: "Search", to: "/app/search", icon: Search },
   { label: "Insights", to: "/app/insights", icon: Sparkles },
-  { label: "Achievements", to: "/app/badge-preview", icon: Award },
 ]
 
 export function AppNavbar() {
@@ -32,33 +32,49 @@ export function AppNavbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-slate-950/80">
-      <Container className="flex h-16 items-center justify-between">
+      <Container className="flex h-16 items-center justify-between gap-4">
         <Logo />
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-0.5 lg:flex">
           {LINKS.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `focus-ring flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                `focus-ring flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
                     : "text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400"
                 }`
               }
             >
-              <link.icon className="h-4 w-4" />
-              {link.label}
+              <link.icon className="h-4 w-4 shrink-0" />
+              <span>{link.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           <ThemeToggle />
+          <div className="mx-1 h-6 w-px bg-slate-200 dark:bg-white/10" aria-hidden />
+          <NavLink
+            to="/app/achievements"
+            title="Achievements"
+            aria-label="Achievements"
+            className={({ isActive }) =>
+              `focus-ring flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                isActive
+                  ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-brand-600 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-brand-400"
+              }`
+            }
+          >
+            <Award className="h-4 w-4" />
+          </NavLink>
           <Link
             to="/app/profile"
             aria-label="Profile"
+            title="Profile"
             className="focus-ring flex h-9 w-9 items-center justify-center rounded-full bg-gradient-brand text-sm font-semibold text-white"
           >
             {initial}
@@ -66,10 +82,11 @@ export function AppNavbar() {
           <button
             type="button"
             onClick={handleLogout}
-            className="focus-ring flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400"
+            aria-label="Logout"
+            title="Logout"
+            className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
           >
             <LogOut className="h-4 w-4" />
-            Logout
           </button>
         </div>
 
@@ -114,6 +131,21 @@ export function AppNavbar() {
                   {link.label}
                 </NavLink>
               ))}
+              <div className="my-2 border-t border-slate-200/70 dark:border-white/10" />
+              <NavLink
+                to="/app/achievements"
+                onClick={() => setMenuOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium ${
+                    isActive
+                      ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+                      : "text-slate-700 dark:text-slate-200"
+                  }`
+                }
+              >
+                <Award className="h-4 w-4" />
+                Achievements
+              </NavLink>
               <NavLink
                 to="/app/profile"
                 onClick={() => setMenuOpen(false)}

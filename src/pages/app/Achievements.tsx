@@ -1,8 +1,8 @@
 import { Container } from "../../components/ui/Container"
-import { GamificationPanel } from "../../components/badges/GamificationPanel"
+import { AchievementsBoard } from "../../components/badges/AchievementsBoard"
 import { usePageMeta } from "../../hooks/usePageMeta"
 
-export default function BadgePreviewPage() {
+export default function AchievementsPage() {
   usePageMeta("Achievements — SentiTrack AI")
 
   return (
@@ -12,10 +12,10 @@ export default function BadgePreviewPage() {
           Achievements
         </h1>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          Streaks, levels, weekly challenges, and medal badges earned from real journaling.
+          Unlock medals by journaling. Tap any badge to see the task.
         </p>
         <div className="mt-8">
-          <GamificationPanel />
+          <AchievementsBoard />
         </div>
       </Container>
     </section>
