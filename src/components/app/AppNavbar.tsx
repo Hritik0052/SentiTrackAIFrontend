@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion"
-import { BarChart3, BookOpen, CalendarRange, LogOut, Menu, Search, Sparkles, User, X } from "lucide-react"
+import { Award, BarChart3, BookOpen, CalendarRange, LogOut, Menu, Search, Sparkles, User, X } from "lucide-react"
 import { useState } from "react"
 import { Link, NavLink, useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
@@ -14,6 +14,7 @@ const LINKS = [
   { label: "Summaries", to: "/app/summaries", icon: CalendarRange },
   { label: "Search", to: "/app/search", icon: Search },
   { label: "Insights", to: "/app/insights", icon: Sparkles },
+  { label: "Achievements", to: "/app/badge-preview", icon: Award },
 ]
 
 export function AppNavbar() {

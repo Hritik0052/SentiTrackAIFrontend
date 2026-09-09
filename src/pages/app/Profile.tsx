@@ -5,6 +5,7 @@ import { Lock, Mail, Save, Trash2, User as UserIcon } from "lucide-react"
 import toast from "react-hot-toast"
 import { Button } from "../../components/ui/Button"
 import { Container } from "../../components/ui/Container"
+import { GamificationPanel } from "../../components/badges/GamificationPanel"
 import { ApiError } from "../../lib/apiClient"
 import { useAuth } from "../../hooks/useAuth"
 import { userService } from "../../services/userService"
@@ -73,13 +74,23 @@ export default function ProfilePage() {
 
   return (
     <section className="py-10 sm:py-14">
-      <Container className="max-w-2xl">
+      <Container className="max-w-4xl">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
           Profile
         </h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Manage your account details.
+          Manage your account details and track your journaling progress.
         </p>
+
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Your progress</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Streaks, XP, challenges, and badges
+          </p>
+          <div className="mt-4">
+            <GamificationPanel compact />
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} noValidate className="card-surface mt-6 p-6 sm:p-8">
           <div>

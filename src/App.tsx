@@ -16,6 +16,7 @@ import JournalListPage from "./pages/app/JournalList"
 import ProfilePage from "./pages/app/Profile"
 import SearchPage from "./pages/app/Search"
 import WeeklySummaryPage from "./pages/app/WeeklySummary"
+import BadgePreviewPage from "./pages/app/BadgePreview"
 import NotFoundPage from "./pages/NotFound"
 
 export default function App() {
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="search" element={<SearchPage />} />
           <Route path="insights" element={<InsightsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="badge-preview" element={<BadgePreviewPage />} />
         </Route>
       </Route>
 
