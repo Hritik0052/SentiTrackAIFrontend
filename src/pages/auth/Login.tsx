@@ -23,16 +23,20 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/app/journals"
+  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
     try {
-      await login({ email, password })
+      const me = await login({ email, password })
       toast.success("Welcome back!")
-      navigate(from, { replace: true })
+      if (me.is_admin) {
+        navigate("/admin", { replace: true })
+      } else {
+        navigate(from && from.startsWith("/app") ? from : "/app/journals", { replace: true })
+      }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Something went wrong. Please try again."
       setError(message)

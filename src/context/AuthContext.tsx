@@ -45,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenStorage.setTokens(tokens.access_token, tokens.refresh_token)
     const me = await authService.me()
     setUser(me)
+    return me
   }, [])
 
   const register = useCallback(async (payload: RegisterPayload) => {
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenStorage.setTokens(tokens.access_token, tokens.refresh_token)
     const me = await authService.me()
     setUser(me)
+    return me
   }, [])
 
   const logout = useCallback(async () => {

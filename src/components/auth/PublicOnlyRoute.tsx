@@ -4,7 +4,7 @@ import { Spinner } from "../ui/Spinner"
 
 /** Keeps signed-in users out of /login and /register. */
 export function PublicOnlyRoute() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -15,7 +15,7 @@ export function PublicOnlyRoute() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/app/journals" replace />
+    return <Navigate to={user?.is_admin ? "/admin" : "/app/journals"} replace />
   }
 
   return <Outlet />
