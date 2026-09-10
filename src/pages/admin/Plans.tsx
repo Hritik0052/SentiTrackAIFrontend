@@ -18,6 +18,12 @@ function emptyForm(): PlanCreatePayload {
     code: "",
     name: "",
     description: "",
+    features: [
+      "Journal entries",
+      "AI sentiment analysis",
+      "Weekly summaries",
+      "Insights",
+    ],
     daily_journal_limit: 3,
     weekly_summary_limit: 1,
     daily_analyze_limit: 5,
@@ -29,6 +35,17 @@ function emptyForm(): PlanCreatePayload {
   }
 }
 
+function featuresToText(features: string[] | null | undefined): string {
+  return (features ?? []).join("\n")
+}
+
+function textToFeatures(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
 export default function AdminPlansPage() {
   usePageMeta("Admin — Plans")
 
@@ -37,8 +54,10 @@ export default function AdminPlansPage() {
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState<PlanCreatePayload>(emptyForm)
+  const [formFeaturesText, setFormFeaturesText] = useState(featuresToText(emptyForm().features))
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<Partial<PlanSummary>>({})
+  const [editFeaturesText, setEditFeaturesText] = useState("")
   const [busyId, setBusyId] = useState<number | null>(null)
 
   async function reload() {
@@ -73,9 +92,11 @@ export default function AdminPlansPage() {
         code: form.code.trim().toLowerCase(),
         name: form.name.trim(),
         description: form.description?.trim() || null,
+        features: textToFeatures(formFeaturesText),
       })
       toast.success("Plan created")
       setForm(emptyForm())
+      setFormFeaturesText(featuresToText(emptyForm().features))
       await reload()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Couldn't create plan.")
@@ -87,6 +108,7 @@ export default function AdminPlansPage() {
   function startEdit(plan: PlanSummary) {
     setEditingId(plan.id)
     setEditDraft({ ...plan })
+    setEditFeaturesText(featuresToText(plan.features))
   }
 
   async function saveEdit() {
@@ -96,6 +118,7 @@ export default function AdminPlansPage() {
       await adminService.updatePlan(editingId, {
         name: editDraft.name,
         description: editDraft.description,
+        features: textToFeatures(editFeaturesText),
         daily_journal_limit: editDraft.daily_journal_limit,
         weekly_summary_limit: editDraft.weekly_summary_limit,
         daily_analyze_limit: editDraft.daily_analyze_limit,
@@ -169,13 +192,23 @@ export default function AdminPlansPage() {
               const d = editing ? editDraft : plan
               return (
                 <tr key={plan.id} className="bg-white dark:bg-slate-900/40">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" colSpan={editing ? 1 : undefined}>
                     {editing ? (
-                      <input
-                        className={inputCls}
-                        value={d.name ?? ""}
-                        onChange={(e) => setEditDraft((prev) => ({ ...prev, name: e.target.value }))}
-                      />
+                      <div className="space-y-2">
+                        <input
+                          className={inputCls}
+                          value={d.name ?? ""}
+                          onChange={(e) => setEditDraft((prev) => ({ ...prev, name: e.target.value }))}
+                        />
+                        <textarea
+                          className={inputCls}
+                          rows={5}
+                          value={editFeaturesText}
+                          onChange={(e) => setEditFeaturesText(e.target.value)}
+                          placeholder={"One feature per line"}
+                        />
+                        <p className="text-[11px] text-slate-400">Features (one per line) — shown on Explore Plans</p>
+                      </div>
                     ) : (
                       <div>
                         <p className="font-semibold text-slate-900 dark:text-white">
@@ -187,6 +220,9 @@ export default function AdminPlansPage() {
                           )}
                         </p>
                         <p className="text-xs text-slate-400">{plan.code}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {(plan.features ?? []).length} features
+                        </p>
                       </div>
                     )}
                   </td>
@@ -335,6 +371,18 @@ export default function AdminPlansPage() {
               />
             </div>
           ))}
+          <div className="sm:col-span-2 lg:col-span-3">
+            <label className="mb-1 block text-xs font-medium text-slate-500">
+              Features (one per line — shown on Explore Plans)
+            </label>
+            <textarea
+              className={inputCls}
+              rows={5}
+              value={formFeaturesText}
+              onChange={(e) => setFormFeaturesText(e.target.value)}
+              placeholder={"Unlimited journals\nUnlimited AI analysis"}
+            />
+          </div>
         </div>
         <div className="mt-5">
           <Button type="submit" disabled={creating} icon={<Plus className="h-4 w-4" />}>

@@ -4,6 +4,7 @@ import {
   BarChart3,
   BookOpen,
   CalendarRange,
+  CreditCard,
   LogOut,
   Menu,
   Search,
@@ -27,6 +28,7 @@ const LINKS = [
   { label: "Summaries", to: "/app/summaries", icon: CalendarRange },
   { label: "Search", to: "/app/search", icon: Search },
   { label: "Insights", to: "/app/insights", icon: Sparkles },
+  { label: "Plans", to: "/app/plans", icon: CreditCard },
 ]
 
 export function AppNavbar() {

@@ -3,6 +3,7 @@ export interface PlanSummary {
   code: string
   name: string
   description: string | null
+  features: string[]
   daily_journal_limit: number | null
   weekly_summary_limit: number | null
   daily_analyze_limit: number | null
@@ -32,6 +33,7 @@ export interface PlanCreatePayload {
   code: string
   name: string
   description?: string | null
+  features?: string[] | null
   daily_journal_limit?: number | null
   weekly_summary_limit?: number | null
   daily_analyze_limit?: number | null

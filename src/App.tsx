@@ -20,6 +20,7 @@ import SearchPage from "./pages/app/Search"
 import WeeklySummaryPage from "./pages/app/WeeklySummary"
 import AchievementsPage from "./pages/app/Achievements"
 import BillingReturnPage from "./pages/app/BillingReturn"
+import ExplorePlansPage from "./pages/app/ExplorePlans"
 import AdminOverviewPage from "./pages/admin/Overview"
 import AdminPlansPage from "./pages/admin/Plans"
 import AdminUsersPage from "./pages/admin/Users"
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="achievements" element={<AchievementsPage />} />
           <Route path="badge-preview" element={<AchievementsPage />} />
+          <Route path="plans" element={<ExplorePlansPage />} />
           <Route path="billing/return" element={<BillingReturnPage />} />
         </Route>
       </Route>

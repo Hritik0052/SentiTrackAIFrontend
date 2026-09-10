@@ -149,23 +149,17 @@ export function PlanUsageCard({ className = "" }: { className?: string }) {
           <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
             Pro active
           </span>
-        ) : canUpgrade ? (
-          <Button disabled={upgrading} onClick={handleUpgrade}>
-            {upgrading ? "Starting…" : "Upgrade to Pro"}
-          </Button>
         ) : (
-          <button
-            type="button"
-            disabled
-            title={
-              configured
-                ? "Pro plan unavailable"
-                : "Payments not configured on the server yet"
-            }
-            className="cursor-not-allowed rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-400 dark:border-white/10"
-          >
-            Upgrade unavailable
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Button to="/app/plans" variant="secondary">
+              Explore plans
+            </Button>
+            {canUpgrade && (
+              <Button disabled={upgrading} onClick={handleUpgrade}>
+                {upgrading ? "Starting…" : "Upgrade to Pro"}
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
