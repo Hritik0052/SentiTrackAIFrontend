@@ -44,6 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const tokens = await authService.login(payload)
     tokenStorage.setTokens(tokens.access_token, tokens.refresh_token)
     const me = await authService.me()
+    // Prefer login payload flag if /me is missing/lagging the field.
+    if (tokens.is_admin === true && me.is_admin !== true) {
+      me.is_admin = true
+    }
     setUser(me)
     return me
   }, [])

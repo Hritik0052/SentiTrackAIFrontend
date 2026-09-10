@@ -16,8 +16,9 @@ const LINKS = [
 ]
 
 export function Navbar() {
-  const { isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
+  const appHome = user?.is_admin === true ? "/admin" : "/app/journals"
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -68,7 +69,7 @@ export function Navbar() {
           <ThemeToggle />
           {isAuthenticated ? (
             <>
-              <Button to="/app/journals" variant="primary" size="md">
+              <Button to={appHome} variant="primary" size="md">
                 Open App
               </Button>
               <Button variant="ghost" size="md" onClick={handleLogout}>
@@ -132,7 +133,7 @@ export function Navbar() {
                 {isAuthenticated ? (
                   <>
                     <Button
-                      to="/app/journals"
+                      to={appHome}
                       variant="primary"
                       size="md"
                       onClick={() => setMenuOpen(false)}

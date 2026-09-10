@@ -8,6 +8,7 @@ import { Container } from "../../components/ui/Container"
 import { GradientBlobs } from "../../components/ui/GradientBlobs"
 import { Logo } from "../../components/layout/Logo"
 import { ApiError } from "../../lib/apiClient"
+import { goPostAuth } from "../../lib/postAuthPath"
 import { useAuth } from "../../hooks/useAuth"
 import { usePageMeta } from "../../hooks/usePageMeta"
 
@@ -31,12 +32,13 @@ export default function LoginPage() {
     setSubmitting(true)
     try {
       const me = await login({ email, password })
-      toast.success("Welcome back!")
-      if (me.is_admin) {
-        navigate("/admin", { replace: true })
-      } else {
-        navigate(from && from.startsWith("/app") ? from : "/app/journals", { replace: true })
+      toast.success(me.is_admin ? "Welcome back, admin!" : "Welcome back!")
+      if (me.is_admin === true) {
+        // Full page load so AdminRoute sees the user after bootstrap (no race).
+        goPostAuth(me)
+        return
       }
+      navigate(from && from.startsWith("/app") ? from : "/app/journals", { replace: true })
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Something went wrong. Please try again."
       setError(message)

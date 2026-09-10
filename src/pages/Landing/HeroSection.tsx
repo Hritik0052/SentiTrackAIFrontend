@@ -9,7 +9,7 @@ import { useAuth } from "../../hooks/useAuth"
 import { MoodPreviewCard } from "./MoodPreviewCard"
 
 export function HeroSection() {
-  const { isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
 
   async function handleLogout() {
@@ -61,7 +61,7 @@ export function HeroSection() {
             >
               {isAuthenticated ? (
                 <>
-                  <Button to="/app/journals" size="lg" icon={<ArrowRight className="h-4.5 w-4.5" />}>
+                  <Button to={user?.is_admin ? "/admin" : "/app/journals"} size="lg" icon={<ArrowRight className="h-4.5 w-4.5" />}>
                     Open App
                   </Button>
                   <Button variant="secondary" size="lg" onClick={handleLogout}>

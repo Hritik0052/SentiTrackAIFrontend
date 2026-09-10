@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom"
 import { useAuth } from "../../hooks/useAuth"
+import { getPostAuthPath } from "../../lib/postAuthPath"
 import { Spinner } from "../ui/Spinner"
 
 /** Keeps signed-in users out of /login and /register. */
@@ -15,7 +16,7 @@ export function PublicOnlyRoute() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to={user?.is_admin ? "/admin" : "/app/journals"} replace />
+    return <Navigate to={getPostAuthPath(user)} replace />
   }
 
   return <Outlet />
