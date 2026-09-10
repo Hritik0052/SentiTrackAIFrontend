@@ -14,6 +14,7 @@ const LINKS = [
   { label: "About", to: "/about" },
   { label: "Contact", to: "/contact" },
   { label: "Terms", to: "/terms" },
+  { label: "Refunds", to: "/refund-cancellation" },
 ]
 
 export function Navbar() {
