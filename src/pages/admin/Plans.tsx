@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import type { FormEvent } from "react"
-import { Plus, Save, Star } from "lucide-react"
+import { Plus, Save, Star, X } from "lucide-react"
 import toast from "react-hot-toast"
 import { Button } from "../../components/ui/Button"
 import { Spinner } from "../../components/ui/Spinner"
@@ -47,6 +47,18 @@ function textToFeatures(text: string): string[] {
     .filter(Boolean)
 }
 
+const inputCls =
+  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5 dark:text-white"
+
+const labelCls = "mb-1.5 block text-xs font-medium text-slate-500 dark:text-slate-400"
+
+const LIMIT_FIELDS = [
+  ["daily_journal_limit", "Journals / day"],
+  ["daily_analyze_limit", "Analyze / day"],
+  ["weekly_summary_limit", "Summaries / week"],
+  ["weekly_insights_limit", "Insights / week"],
+] as const
+
 export default function AdminPlansPage() {
   usePageMeta("Admin — Plans")
 
@@ -56,7 +68,7 @@ export default function AdminPlansPage() {
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState<PlanCreatePayload>(emptyForm)
   const [formFeaturesText, setFormFeaturesText] = useState(featuresToText(emptyForm().features))
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingPlan, setEditingPlan] = useState<PlanSummary | null>(null)
   const [editDraft, setEditDraft] = useState<Partial<PlanSummary>>({})
   const [editFeaturesText, setEditFeaturesText] = useState("")
   const [busyId, setBusyId] = useState<number | null>(null)
@@ -106,19 +118,27 @@ export default function AdminPlansPage() {
     }
   }
 
-  function startEdit(plan: PlanSummary) {
-    setEditingId(plan.id)
+  function openEditModal(plan: PlanSummary) {
+    setEditingPlan(plan)
     setEditDraft({ ...plan })
     setEditFeaturesText(featuresToText(plan.features))
   }
 
-  async function saveEdit() {
-    if (editingId == null || !editDraft) return
-    setBusyId(editingId)
+  function closeEditModal() {
+    if (busyId != null) return
+    setEditingPlan(null)
+    setEditDraft({})
+    setEditFeaturesText("")
+  }
+
+  async function saveEdit(e: FormEvent) {
+    e.preventDefault()
+    if (editingPlan == null) return
+    setBusyId(editingPlan.id)
     try {
-      await adminService.updatePlan(editingId, {
-        name: editDraft.name,
-        description: editDraft.description,
+      await adminService.updatePlan(editingPlan.id, {
+        name: editDraft.name?.trim(),
+        description: editDraft.description?.trim() || null,
         features: textToFeatures(editFeaturesText),
         daily_journal_limit: editDraft.daily_journal_limit,
         weekly_summary_limit: editDraft.weekly_summary_limit,
@@ -131,7 +151,9 @@ export default function AdminPlansPage() {
         duration_days: editDraft.duration_days,
       })
       toast.success("Plan updated")
-      setEditingId(null)
+      setEditingPlan(null)
+      setEditDraft({})
+      setEditFeaturesText("")
       await reload()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Couldn't update plan.")
@@ -153,9 +175,6 @@ export default function AdminPlansPage() {
     }
   }
 
-  const inputCls =
-    "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5 dark:text-white"
-
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -167,6 +186,8 @@ export default function AdminPlansPage() {
   if (error) {
     return <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
   }
+
+  const saving = editingPlan != null && busyId === editingPlan.id
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -191,172 +212,269 @@ export default function AdminPlansPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-            {plans.map((plan) => {
-              const editing = editingId === plan.id
-              const d = editing ? editDraft : plan
-              return (
-                <tr key={plan.id} className="bg-white dark:bg-slate-900/40">
-                  <td className="px-4 py-3" colSpan={editing ? 1 : undefined}>
-                    {editing ? (
-                      <div className="space-y-2">
-                        <input
-                          className={inputCls}
-                          value={d.name ?? ""}
-                          onChange={(e) => setEditDraft((prev) => ({ ...prev, name: e.target.value }))}
-                        />
-                        <textarea
-                          className={inputCls}
-                          rows={5}
-                          value={editFeaturesText}
-                          onChange={(e) => setEditFeaturesText(e.target.value)}
-                          placeholder={"One feature per line"}
-                        />
-                        <p className="text-[11px] text-slate-400">Features (one per line) — shown on Explore Plans</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">
-                          {plan.name}
-                          {plan.is_default && (
-                            <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
-                              <Star className="h-3 w-3" /> Default
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-slate-400">{plan.code}</p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {(plan.features ?? []).length} features · {plan.billing_period ?? "—"}
-                        </p>
-                      </div>
+            {plans.map((plan) => (
+              <tr key={plan.id} className="bg-white dark:bg-slate-900/40">
+                <td className="px-4 py-3">
+                  <p className="font-semibold text-slate-900 dark:text-white">
+                    {plan.name}
+                    {plan.is_default && (
+                      <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                        <Star className="h-3 w-3" /> Default
+                      </span>
                     )}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {editing ? (
-                      <input
-                        type="number"
-                        min={0}
-                        className={inputCls}
-                        value={d.price_inr ?? 0}
-                        onChange={(e) =>
-                          setEditDraft((prev) => ({ ...prev, price_inr: Number(e.target.value) }))
-                        }
-                      />
-                    ) : (plan.price_inr ?? 0) > 0 ? (
-                      `₹${plan.price_inr}`
-                    ) : (
-                      "Free"
+                  </p>
+                  <p className="text-xs text-slate-400">{plan.code}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {(plan.features ?? []).length} features · {plan.billing_period ?? "—"}
+                  </p>
+                </td>
+                <td className="px-4 py-3 tabular-nums">
+                  {(plan.price_inr ?? 0) > 0 ? `₹${plan.price_inr}` : "Free"}
+                </td>
+                <td className="px-4 py-3 tabular-nums">{plan.duration_days ?? "—"}</td>
+                <td className="px-4 py-3 tabular-nums">{limitLabel(plan.daily_journal_limit)}</td>
+                <td className="px-4 py-3 tabular-nums">{limitLabel(plan.daily_analyze_limit)}</td>
+                <td className="px-4 py-3 tabular-nums">{limitLabel(plan.weekly_summary_limit)}</td>
+                <td className="px-4 py-3 tabular-nums">{limitLabel(plan.weekly_insights_limit)}</td>
+                <td className="px-4 py-3">
+                  {plan.is_active ? (
+                    <span className="text-emerald-600 dark:text-emerald-400">Active</span>
+                  ) : (
+                    <span className="text-slate-400">Inactive</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button variant="secondary" onClick={() => openEditModal(plan)}>
+                      Edit
+                    </Button>
+                    {!plan.is_default && (
+                      <Button
+                        variant="ghost"
+                        disabled={busyId === plan.id}
+                        onClick={() => makeDefault(plan.id)}
+                      >
+                        Set default
+                      </Button>
                     )}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {editing ? (
-                      <input
-                        type="number"
-                        min={1}
-                        className={inputCls}
-                        value={d.duration_days ?? ""}
-                        onChange={(e) =>
-                          setEditDraft((prev) => ({
-                            ...prev,
-                            duration_days: e.target.value === "" ? null : Number(e.target.value),
-                          }))
-                        }
-                      />
-                    ) : (
-                      plan.duration_days ?? "—"
-                    )}
-                  </td>
-                  {(
-                    [
-                      "daily_journal_limit",
-                      "daily_analyze_limit",
-                      "weekly_summary_limit",
-                      "weekly_insights_limit",
-                    ] as const
-                  ).map((key) => (
-                    <td key={key} className="px-4 py-3 tabular-nums">
-                      {editing ? (
-                        <input
-                          type="number"
-                          min={0}
-                          className={inputCls}
-                          placeholder="∞"
-                          value={d[key] ?? ""}
-                          onChange={(e) =>
-                            setEditDraft((prev) => ({
-                              ...prev,
-                              [key]: e.target.value === "" ? null : Number(e.target.value),
-                            }))
-                          }
-                        />
-                      ) : (
-                        limitLabel(plan[key])
-                      )}
-                    </td>
-                  ))}
-                  <td className="px-4 py-3">
-                    {editing ? (
-                      <label className="flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(d.is_active)}
-                          onChange={(e) =>
-                            setEditDraft((prev) => ({ ...prev, is_active: e.target.checked }))
-                          }
-                        />
-                        Active
-                      </label>
-                    ) : plan.is_active ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">Active</span>
-                    ) : (
-                      <span className="text-slate-400">Inactive</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      {editing ? (
-                        <>
-                          <Button
-                            size="md"
-                            disabled={busyId === plan.id}
-                            onClick={saveEdit}
-                            icon={<Save className="h-3.5 w-3.5" />}
-                          >
-                            Save
-                          </Button>
-                          <Button variant="ghost" onClick={() => setEditingId(null)}>
-                            Cancel
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button variant="secondary" onClick={() => startEdit(plan)}>
-                            Edit
-                          </Button>
-                          {!plan.is_default && (
-                            <Button
-                              variant="ghost"
-                              disabled={busyId === plan.id}
-                              onClick={() => makeDefault(plan.id)}
-                            >
-                              Set default
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
+
+      {editingPlan && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-plan-title"
+          onClick={closeEditModal}
+        >
+          <form
+            className="card-surface max-h-[90vh] w-full max-w-lg overflow-y-auto bg-white p-6 dark:bg-slate-900"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={saveEdit}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3
+                  id="edit-plan-title"
+                  className="text-lg font-semibold text-slate-900 dark:text-white"
+                >
+                  Edit plan
+                </h3>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Code: <span className="font-mono text-slate-700 dark:text-slate-300">{editingPlan.code}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditModal}
+                aria-label="Close"
+                disabled={saving}
+                className="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className={labelCls} htmlFor="edit-plan-name">
+                  Plan name
+                </label>
+                <input
+                  id="edit-plan-name"
+                  required
+                  className={inputCls}
+                  value={editDraft.name ?? ""}
+                  disabled={saving}
+                  onChange={(e) => setEditDraft((prev) => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className={labelCls} htmlFor="edit-plan-description">
+                  Description
+                </label>
+                <textarea
+                  id="edit-plan-description"
+                  rows={2}
+                  className={inputCls}
+                  value={editDraft.description ?? ""}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setEditDraft((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div>
+                <label className={labelCls} htmlFor="edit-plan-price">
+                  Price (INR)
+                </label>
+                <input
+                  id="edit-plan-price"
+                  type="number"
+                  min={0}
+                  className={inputCls}
+                  value={editDraft.price_inr ?? 0}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setEditDraft((prev) => ({ ...prev, price_inr: Number(e.target.value) }))
+                  }
+                />
+              </div>
+
+              <div>
+                <label className={labelCls} htmlFor="edit-plan-days">
+                  Validity (days)
+                </label>
+                <input
+                  id="edit-plan-days"
+                  type="number"
+                  min={1}
+                  required
+                  className={inputCls}
+                  value={editDraft.duration_days ?? ""}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setEditDraft((prev) => ({
+                      ...prev,
+                      duration_days: e.target.value === "" ? null : Number(e.target.value),
+                    }))
+                  }
+                />
+              </div>
+
+              <div>
+                <label className={labelCls} htmlFor="edit-plan-period">
+                  Billing period
+                </label>
+                <select
+                  id="edit-plan-period"
+                  className={inputCls}
+                  value={editDraft.billing_period ?? "monthly"}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setEditDraft((prev) => ({ ...prev, billing_period: e.target.value }))
+                  }
+                >
+                  <option value="trial">trial (free)</option>
+                  <option value="monthly">monthly</option>
+                  <option value="yearly">yearly</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls} htmlFor="edit-plan-sort">
+                  Sort order
+                </label>
+                <input
+                  id="edit-plan-sort"
+                  type="number"
+                  className={inputCls}
+                  value={editDraft.sort_order ?? 0}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setEditDraft((prev) => ({ ...prev, sort_order: Number(e.target.value) }))
+                  }
+                />
+              </div>
+
+              {LIMIT_FIELDS.map(([key, label]) => (
+                <div key={key}>
+                  <label className={labelCls} htmlFor={`edit-plan-${key}`}>
+                    {label}
+                  </label>
+                  <input
+                    id={`edit-plan-${key}`}
+                    type="number"
+                    min={0}
+                    className={inputCls}
+                    placeholder="blank = unlimited"
+                    value={editDraft[key] ?? ""}
+                    disabled={saving}
+                    onChange={(e) =>
+                      setEditDraft((prev) => ({
+                        ...prev,
+                        [key]: e.target.value === "" ? null : Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+              ))}
+
+              <div className="sm:col-span-2">
+                <label className={labelCls} htmlFor="edit-plan-features">
+                  Features (one per line — shown on Explore Plans)
+                </label>
+                <textarea
+                  id="edit-plan-features"
+                  rows={5}
+                  className={inputCls}
+                  value={editFeaturesText}
+                  disabled={saving}
+                  onChange={(e) => setEditFeaturesText(e.target.value)}
+                  placeholder={"Unlimited journals\nUnlimited AI analysis"}
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editDraft.is_active)}
+                    disabled={saving}
+                    onChange={(e) =>
+                      setEditDraft((prev) => ({ ...prev, is_active: e.target.checked }))
+                    }
+                  />
+                  Active (visible for checkout / assignment)
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="secondary" disabled={saving} onClick={closeEditModal}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving} icon={<Save className="h-3.5 w-3.5" />}>
+                {saving ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <form onSubmit={handleCreate} className="card-surface mt-8 p-5 sm:p-6">
         <h2 className="text-base font-semibold text-slate-900 dark:text-white">Create plan</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Code</label>
+            <label className={labelCls}>Code</label>
             <input
               required
               className={inputCls}
@@ -366,7 +484,7 @@ export default function AdminPlansPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Name</label>
+            <label className={labelCls}>Name</label>
             <input
               required
               className={inputCls}
@@ -376,7 +494,7 @@ export default function AdminPlansPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Price (INR)</label>
+            <label className={labelCls}>Price (INR)</label>
             <input
               type="number"
               min={0}
@@ -386,7 +504,7 @@ export default function AdminPlansPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Validity (days)</label>
+            <label className={labelCls}>Validity (days)</label>
             <input
               type="number"
               min={1}
@@ -397,7 +515,7 @@ export default function AdminPlansPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Billing period</label>
+            <label className={labelCls}>Billing period</label>
             <select
               className={inputCls}
               value={form.billing_period ?? "monthly"}
@@ -408,16 +526,9 @@ export default function AdminPlansPage() {
               <option value="yearly">yearly</option>
             </select>
           </div>
-          {(
-            [
-              ["daily_journal_limit", "Journals / day"],
-              ["daily_analyze_limit", "Analyze / day"],
-              ["weekly_summary_limit", "Summaries / week"],
-              ["weekly_insights_limit", "Insights / week"],
-            ] as const
-          ).map(([key, label]) => (
+          {LIMIT_FIELDS.map(([key, label]) => (
             <div key={key}>
-              <label className="mb-1 block text-xs font-medium text-slate-500">{label}</label>
+              <label className={labelCls}>{label}</label>
               <input
                 type="number"
                 min={0}
@@ -434,9 +545,7 @@ export default function AdminPlansPage() {
             </div>
           ))}
           <div className="sm:col-span-2 lg:col-span-3">
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Features (one per line — shown on Explore Plans)
-            </label>
+            <label className={labelCls}>Features (one per line — shown on Explore Plans)</label>
             <textarea
               className={inputCls}
               rows={5}

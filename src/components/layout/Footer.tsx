@@ -40,8 +40,13 @@ const PRODUCT_LINKS = [
 
 const RESOURCE_LINKS = [
   { label: "About Us", to: "/about" },
-  { label: "Contact", to: "/contact" },
+  { label: "Contact Us", to: "/contact" },
   { label: "API Docs", href: `${env.apiRootUrl}/docs` },
+]
+
+const LEGAL_LINKS = [
+  { label: "Terms & Conditions", to: "/terms" },
+  { label: "Refund & Cancellation", to: "/refund-cancellation" },
   { label: "Privacy", to: "/about#privacy" },
 ]
 
@@ -108,6 +113,19 @@ export function Footer() {
                 </li>
               ))}
             </ul>
+            <h4 className="mt-8 text-sm font-semibold text-slate-900 dark:text-white">Legal</h4>
+            <ul className="mt-4 space-y-3">
+              {LEGAL_LINKS.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    to={link.to}
+                    className="text-sm text-slate-600 transition-colors hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div>
@@ -132,7 +150,20 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-slate-200/70 pt-6 text-sm text-slate-500 sm:flex-row dark:border-white/10">
           <p>© {new Date().getFullYear()} SentiTrack AI. All rights reserved.</p>
-          <p>Built for mindful reflection.</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <Link to="/contact" className="hover:text-brand-600 dark:hover:text-brand-400">
+              Contact Us
+            </Link>
+            <Link to="/terms" className="hover:text-brand-600 dark:hover:text-brand-400">
+              Terms
+            </Link>
+            <Link
+              to="/refund-cancellation"
+              className="hover:text-brand-600 dark:hover:text-brand-400"
+            >
+              Refunds
+            </Link>
+          </div>
         </div>
       </Container>
     </footer>

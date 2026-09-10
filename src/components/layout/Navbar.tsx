@@ -13,6 +13,7 @@ const LINKS = [
   { label: "Home", to: "/" },
   { label: "About", to: "/about" },
   { label: "Contact", to: "/contact" },
+  { label: "Terms", to: "/terms" },
 ]
 
 export function Navbar() {

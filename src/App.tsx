@@ -10,6 +10,8 @@ import ContactPage from "./pages/Contact"
 import LandingPage from "./pages/Landing"
 import LoginPage from "./pages/auth/Login"
 import RegisterPage from "./pages/auth/Register"
+import RefundCancellationPage from "./pages/RefundCancellation"
+import TermsPage from "./pages/Terms"
 import DashboardPage from "./pages/app/Dashboard"
 import InsightsPage from "./pages/app/Insights"
 import JournalDetailPage from "./pages/app/JournalDetail"
@@ -33,6 +35,8 @@ export default function App() {
         <Route index element={<LandingPage />} />
         <Route path="about" element={<AboutPage />} />
         <Route path="contact" element={<ContactPage />} />
+        <Route path="terms" element={<TermsPage />} />
+        <Route path="refund-cancellation" element={<RefundCancellationPage />} />
 
         <Route element={<PublicOnlyRoute />}>
           <Route path="login" element={<LoginPage />} />
