@@ -23,6 +23,7 @@ import {
 import { EmotionAreaChart } from "../../components/charts/EmotionAreaChart"
 import { Button } from "../../components/ui/Button"
 import { ExportButton } from "../../components/ui/ExportButton"
+import { PlanUsageCard } from "../../components/billing/PlanUsageCard"
 import { ApiError } from "../../lib/apiClient"
 import { analyticsService } from "../../services/analyticsService"
 import { exportService } from "../../services/exportService"
@@ -197,6 +198,10 @@ export default function DashboardPage() {
               onExport={() => exportService.monthlySummary(exportMonth)}
             />
           )}
+        </div>
+
+        <div className="mt-8">
+          <PlanUsageCard />
         </div>
 
         {!hasEntries ? (

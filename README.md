@@ -32,6 +32,8 @@ It's not a mood tracker you fill in manually — the *writing itself* is the inp
 | **Insights** | Generate AI-noticed patterns across your journaling history. |
 | **Profile** | Account settings plus **progress analytics**: level/XP, streak & freezes, challenge summary, and **unlocked badges only**. |
 | **Achievements** | Full badge wall (glossy unlocked / greyscale locked), weekly challenges, tap a badge for a task modal. |
+| **Plan usage** | Profile + Dashboard show plan quotas (journals, analyze, summaries, insights). Limit errors toast clearly. |
+| **Admin** | `/admin` overview, plans CRUD, user plan assignment (`is_admin` only). |
 | **Everywhere** | Light/dark mode, responsive layout, loading and empty states for AI calls. |
 
 ## Tech stack

@@ -39,7 +39,10 @@ export default function JournalEditorPage() {
       toast.success("Entry saved")
       navigate(`/app/journals/${journal.id}`, { replace: true })
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't save your entry. Please try again.")
+      const message =
+        err instanceof ApiError ? err.message : "Couldn't save your entry. Please try again."
+      setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }

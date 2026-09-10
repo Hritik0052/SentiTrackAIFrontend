@@ -1,5 +1,17 @@
 import { AnimatePresence, motion } from "framer-motion"
-import { Award, BarChart3, BookOpen, CalendarRange, LogOut, Menu, Search, Sparkles, User, X } from "lucide-react"
+import {
+  Award,
+  BarChart3,
+  BookOpen,
+  CalendarRange,
+  LogOut,
+  Menu,
+  Search,
+  Shield,
+  Sparkles,
+  User,
+  X,
+} from "lucide-react"
 import { useState } from "react"
 import { Link, NavLink, useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
@@ -21,6 +33,7 @@ export function AppNavbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const isAdmin = Boolean(user?.is_admin)
 
   async function handleLogout() {
     await logout()
@@ -57,6 +70,16 @@ export function AppNavbar() {
         <div className="hidden items-center gap-2 lg:flex">
           <ThemeToggle />
           <div className="mx-1 h-6 w-px bg-slate-200 dark:bg-white/10" aria-hidden />
+          {isAdmin && (
+            <Link
+              to="/admin"
+              title="Admin panel"
+              aria-label="Admin panel"
+              className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-brand-600 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-brand-400"
+            >
+              <Shield className="h-4 w-4" />
+            </Link>
+          )}
           <NavLink
             to="/app/achievements"
             title="Achievements"
@@ -132,6 +155,16 @@ export function AppNavbar() {
                 </NavLink>
               ))}
               <div className="my-2 border-t border-slate-200/70 dark:border-white/10" />
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200"
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin
+                </Link>
+              )}
               <NavLink
                 to="/app/achievements"
                 onClick={() => setMenuOpen(false)}
@@ -164,7 +197,7 @@ export function AppNavbar() {
                 type="button"
                 onClick={() => {
                   setMenuOpen(false)
-                  handleLogout()
+                  void handleLogout()
                 }}
                 className="mt-2 flex items-center gap-2 rounded-lg border-t border-slate-200/70 px-3 pt-4 text-sm font-medium text-red-600 dark:border-white/10 dark:text-red-400"
               >

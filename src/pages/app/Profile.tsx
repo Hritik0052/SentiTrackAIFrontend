@@ -1,11 +1,12 @@
 import { useState } from "react"
 import type { FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Award, Lock, Mail, Save, Trash2, User as UserIcon } from "lucide-react"
+import { Award, Lock, Mail, Save, Shield, Trash2, User as UserIcon } from "lucide-react"
 import toast from "react-hot-toast"
 import { Button } from "../../components/ui/Button"
 import { Container } from "../../components/ui/Container"
 import { ProfileProgress } from "../../components/badges/ProfileProgress"
+import { PlanUsageCard } from "../../components/billing/PlanUsageCard"
 import { ApiError } from "../../lib/apiClient"
 import { useAuth } from "../../hooks/useAuth"
 import { userService } from "../../services/userService"
@@ -89,13 +90,28 @@ export default function ProfilePage() {
               <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{user.email}</p>
             </div>
           </div>
-          <Link
-            to="/app/achievements"
-            className="focus-ring inline-flex items-center gap-2 self-start rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-400 hover:text-brand-600 dark:border-white/10 dark:text-slate-200 dark:hover:border-brand-400 dark:hover:text-brand-300"
-          >
-            <Award className="h-4 w-4" />
-            All achievements
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/app/achievements"
+              className="focus-ring inline-flex items-center gap-2 self-start rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-400 hover:text-brand-600 dark:border-white/10 dark:text-slate-200 dark:hover:border-brand-400 dark:hover:text-brand-300"
+            >
+              <Award className="h-4 w-4" />
+              All achievements
+            </Link>
+            {user.is_admin && (
+              <Link
+                to="/admin"
+                className="focus-ring inline-flex items-center gap-2 self-start rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-400 hover:text-brand-600 dark:border-white/10 dark:text-slate-200 dark:hover:border-brand-400 dark:hover:text-brand-300"
+              >
+                <Shield className="h-4 w-4" />
+                Admin panel
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <PlanUsageCard />
         </div>
 
         <div className="mt-8">

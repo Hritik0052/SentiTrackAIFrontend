@@ -1,8 +1,10 @@
 import { Route, Routes } from "react-router-dom"
+import { AdminRoute } from "./components/auth/AdminRoute"
 import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 import { PublicOnlyRoute } from "./components/auth/PublicOnlyRoute"
 import { PublicLayout } from "./layouts/PublicLayout"
 import { AppLayout } from "./layouts/AppLayout"
+import { AdminLayout } from "./layouts/AdminLayout"
 import AboutPage from "./pages/About"
 import ContactPage from "./pages/Contact"
 import LandingPage from "./pages/Landing"
@@ -17,6 +19,9 @@ import ProfilePage from "./pages/app/Profile"
 import SearchPage from "./pages/app/Search"
 import WeeklySummaryPage from "./pages/app/WeeklySummary"
 import AchievementsPage from "./pages/app/Achievements"
+import AdminOverviewPage from "./pages/admin/Overview"
+import AdminPlansPage from "./pages/admin/Plans"
+import AdminUsersPage from "./pages/admin/Users"
 import NotFoundPage from "./pages/NotFound"
 
 export default function App() {
@@ -46,6 +51,14 @@ export default function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="achievements" element={<AchievementsPage />} />
           <Route path="badge-preview" element={<AchievementsPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<AdminRoute />}>
+        <Route path="admin" element={<AdminLayout />}>
+          <Route index element={<AdminOverviewPage />} />
+          <Route path="plans" element={<AdminPlansPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
         </Route>
       </Route>
 
