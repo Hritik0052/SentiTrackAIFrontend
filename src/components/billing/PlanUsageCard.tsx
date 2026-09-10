@@ -1,12 +1,21 @@
 import { useEffect, useState } from "react"
 import { CreditCard } from "lucide-react"
+import toast from "react-hot-toast"
 import { ApiError } from "../../lib/apiClient"
+import { openCashfreeCheckout } from "../../lib/cashfreeCheckout"
 import { billingService } from "../../services/billingService"
-import type { QuotaBucket, UsageSnapshot } from "../../types/billing"
+import type { PlanSummary, QuotaBucket, UsageSnapshot } from "../../types/billing"
+import { Button } from "../ui/Button"
 import { Spinner } from "../ui/Spinner"
 
 function formatLimit(limit: number | null): string {
   return limit == null ? "Unlimited" : String(limit)
+}
+
+function formatPrice(plan: PlanSummary): string {
+  if (plan.price_inr == null || plan.price_inr <= 0) return ""
+  const period = plan.billing_period ? `/${plan.billing_period === "yearly" ? "yr" : "mo"}` : ""
+  return `₹${plan.price_inr}${period}`
 }
 
 function QuotaBar({ label, bucket }: { label: string; bucket: QuotaBucket }) {
@@ -43,19 +52,30 @@ function QuotaBar({ label, bucket }: { label: string; bucket: QuotaBucket }) {
 
 export function PlanUsageCard({ className = "" }: { className?: string }) {
   const [usage, setUsage] = useState<UsageSnapshot | null>(null)
+  const [proPlan, setProPlan] = useState<PlanSummary | null>(null)
+  const [configured, setConfigured] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [upgrading, setUpgrading] = useState(false)
+  const [phone, setPhone] = useState("")
+
+  async function reload() {
+    const [usageData, billing, plans] = await Promise.all([
+      billingService.getMyUsage(),
+      billingService.getBillingMe(),
+      billingService.listPlans(),
+    ])
+    setUsage(usageData)
+    setConfigured(billing.cashfree_configured)
+    setProPlan(plans.find((p) => p.code === "pro" && p.is_active) ?? null)
+  }
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    billingService
-      .getMyUsage()
-      .then((data) => {
-        if (!cancelled) {
-          setUsage(data)
-          setError(null)
-        }
+    reload()
+      .then(() => {
+        if (!cancelled) setError(null)
       })
       .catch((err) => {
         if (!cancelled) {
@@ -69,6 +89,25 @@ export function PlanUsageCard({ className = "" }: { className?: string }) {
       cancelled = true
     }
   }, [])
+
+  async function handleUpgrade() {
+    setUpgrading(true)
+    try {
+      const order = await billingService.createCashfreeOrder({
+        plan_code: "pro",
+        customer_phone: phone.trim() || undefined,
+      })
+      toast.success("Opening secure checkout…")
+      await openCashfreeCheckout({
+        paymentSessionId: order.payment_session_id,
+        env: order.env,
+      })
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Couldn't start checkout.")
+    } finally {
+      setUpgrading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -87,6 +126,8 @@ export function PlanUsageCard({ className = "" }: { className?: string }) {
   }
 
   const planName = usage.plan?.name ?? "Free"
+  const isPro = usage.plan?.code === "pro"
+  const canUpgrade = !isPro && configured && proPlan != null
 
   return (
     <div className={`card-surface p-5 sm:p-6 ${className}`}>
@@ -100,19 +141,50 @@ export function PlanUsageCard({ className = "" }: { className?: string }) {
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {planName}
               {usage.plan?.is_default ? " · default" : ""}
+              {proPlan && !isPro ? ` · Upgrade ${formatPrice(proPlan)}` : ""}
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => undefined}
-          disabled
-          title="Self-serve upgrades coming soon"
-          className="cursor-not-allowed rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-400 dark:border-white/10"
-        >
-          Upgrade · Coming soon
-        </button>
+        {isPro ? (
+          <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+            Pro active
+          </span>
+        ) : canUpgrade ? (
+          <Button disabled={upgrading} onClick={handleUpgrade}>
+            {upgrading ? "Starting…" : "Upgrade to Pro"}
+          </Button>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title={
+              configured
+                ? "Pro plan unavailable"
+                : "Payments not configured on the server yet"
+            }
+            className="cursor-not-allowed rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-400 dark:border-white/10"
+          >
+            Upgrade unavailable
+          </button>
+        )}
       </div>
+
+      {canUpgrade && (
+        <div className="mt-4">
+          <label className="mb-1 block text-xs font-medium text-slate-500">
+            Mobile number for checkout (10 digits)
+          </label>
+          <input
+            type="tel"
+            inputMode="numeric"
+            maxLength={15}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, ""))}
+            placeholder="9876543210"
+            className="w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5 dark:text-white"
+          />
+        </div>
+      )}
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <QuotaBar label="Journals today" bucket={usage.journals_today} />

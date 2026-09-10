@@ -82,3 +82,26 @@ export interface AdminUserListResponse {
   page: number
   page_size: number
 }
+
+export interface CreateCashfreeOrderPayload {
+  plan_code?: string
+  customer_phone?: string
+}
+
+export interface CreateCashfreeOrderResponse {
+  order_id: string
+  payment_session_id: string
+  order_amount: number
+  order_currency: string
+  env: string
+  plan: PlanSummary
+}
+
+export interface BillingMe {
+  plan: PlanSummary | null
+  status: string | null
+  payment_provider: string | null
+  cashfree_order_id: string | null
+  cashfree_configured: boolean
+  cashfree_env: string
+}
