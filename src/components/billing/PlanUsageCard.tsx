@@ -13,9 +13,9 @@ function formatLimit(limit: number | null): string {
 }
 
 function formatPrice(plan: PlanSummary): string {
-  if (plan.price_inr == null || plan.price_inr <= 0) return ""
-  const period = plan.billing_period ? `/${plan.billing_period === "yearly" ? "yr" : "mo"}` : ""
-  return `₹${plan.price_inr}${period}`
+  const days = plan.duration_days ?? (plan.billing_period === "yearly" ? 365 : 30)
+  if (plan.price_inr == null || plan.price_inr <= 0) return `Free · ${days}d`
+  return `₹${plan.price_inr} / ${days}d`
 }
 
 function QuotaBar({ label, bucket }: { label: string; bucket: QuotaBucket }) {
@@ -53,6 +53,8 @@ function QuotaBar({ label, bucket }: { label: string; bucket: QuotaBucket }) {
 export function PlanUsageCard({ className = "" }: { className?: string }) {
   const [usage, setUsage] = useState<UsageSnapshot | null>(null)
   const [proPlan, setProPlan] = useState<PlanSummary | null>(null)
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
+  const [isExpired, setIsExpired] = useState(false)
   const [configured, setConfigured] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -67,6 +69,8 @@ export function PlanUsageCard({ className = "" }: { className?: string }) {
     ])
     setUsage(usageData)
     setConfigured(billing.cashfree_configured)
+    setDaysRemaining(billing.days_remaining)
+    setIsExpired(billing.is_expired)
     setProPlan(plans.find((p) => p.code === "pro" && p.is_active) ?? null)
   }
 
@@ -125,9 +129,9 @@ export function PlanUsageCard({ className = "" }: { className?: string }) {
     )
   }
 
-  const planName = usage.plan?.name ?? "Free"
-  const isPro = usage.plan?.code === "pro"
-  const canUpgrade = !isPro && configured && proPlan != null
+  const planName = isExpired ? "Expired" : usage.plan?.name ?? "No plan"
+  const isPro = !isExpired && usage.plan?.code === "pro"
+  const canUpgrade = configured && proPlan != null && (!isPro || isExpired)
 
   return (
     <div className={`card-surface p-5 sm:p-6 ${className}`}>
@@ -140,14 +144,16 @@ export function PlanUsageCard({ className = "" }: { className?: string }) {
             <h2 className="text-base font-semibold text-slate-900 dark:text-white">Your plan</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {planName}
-              {usage.plan?.is_default ? " · default" : ""}
+              {!isExpired && usage.plan ? ` · ${formatPrice(usage.plan)}` : ""}
+              {!isExpired && daysRemaining != null ? ` · ${daysRemaining}d left` : ""}
+              {isExpired ? " · renew to continue" : ""}
               {proPlan && !isPro ? ` · Upgrade ${formatPrice(proPlan)}` : ""}
             </p>
           </div>
         </div>
         {isPro ? (
           <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-            Pro active
+            Active
           </span>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -156,7 +162,7 @@ export function PlanUsageCard({ className = "" }: { className?: string }) {
             </Button>
             {canUpgrade && (
               <Button disabled={upgrading} onClick={handleUpgrade}>
-                {upgrading ? "Starting…" : "Upgrade to Pro"}
+                {upgrading ? "Starting…" : isExpired ? "Renew Pro" : "Upgrade to Pro"}
               </Button>
             )}
           </div>

@@ -32,6 +32,7 @@ function emptyForm(): PlanCreatePayload {
     sort_order: 0,
     price_inr: 0,
     billing_period: "monthly",
+    duration_days: 30,
   }
 }
 
@@ -127,6 +128,7 @@ export default function AdminPlansPage() {
         sort_order: editDraft.sort_order,
         price_inr: editDraft.price_inr,
         billing_period: editDraft.billing_period,
+        duration_days: editDraft.duration_days,
       })
       toast.success("Plan updated")
       setEditingId(null)
@@ -178,6 +180,8 @@ export default function AdminPlansPage() {
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-slate-400">
             <tr>
               <th className="px-4 py-3">Plan</th>
+              <th className="px-4 py-3">Price</th>
+              <th className="px-4 py-3">Days</th>
               <th className="px-4 py-3">Journals/day</th>
               <th className="px-4 py-3">Analyze/day</th>
               <th className="px-4 py-3">Summaries/wk</th>
@@ -221,9 +225,44 @@ export default function AdminPlansPage() {
                         </p>
                         <p className="text-xs text-slate-400">{plan.code}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {(plan.features ?? []).length} features
+                          {(plan.features ?? []).length} features · {plan.billing_period ?? "—"}
                         </p>
                       </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">
+                    {editing ? (
+                      <input
+                        type="number"
+                        min={0}
+                        className={inputCls}
+                        value={d.price_inr ?? 0}
+                        onChange={(e) =>
+                          setEditDraft((prev) => ({ ...prev, price_inr: Number(e.target.value) }))
+                        }
+                      />
+                    ) : (plan.price_inr ?? 0) > 0 ? (
+                      `₹${plan.price_inr}`
+                    ) : (
+                      "Free"
+                    )}
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">
+                    {editing ? (
+                      <input
+                        type="number"
+                        min={1}
+                        className={inputCls}
+                        value={d.duration_days ?? ""}
+                        onChange={(e) =>
+                          setEditDraft((prev) => ({
+                            ...prev,
+                            duration_days: e.target.value === "" ? null : Number(e.target.value),
+                          }))
+                        }
+                      />
+                    ) : (
+                      plan.duration_days ?? "—"
                     )}
                   </td>
                   {(
@@ -345,6 +384,29 @@ export default function AdminPlansPage() {
               value={form.price_inr ?? 0}
               onChange={(e) => setForm((f) => ({ ...f, price_inr: Number(e.target.value) }))}
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-500">Validity (days)</label>
+            <input
+              type="number"
+              min={1}
+              required
+              className={inputCls}
+              value={form.duration_days ?? 30}
+              onChange={(e) => setForm((f) => ({ ...f, duration_days: Number(e.target.value) }))}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-500">Billing period</label>
+            <select
+              className={inputCls}
+              value={form.billing_period ?? "monthly"}
+              onChange={(e) => setForm((f) => ({ ...f, billing_period: e.target.value }))}
+            >
+              <option value="trial">trial (free)</option>
+              <option value="monthly">monthly</option>
+              <option value="yearly">yearly</option>
+            </select>
           </div>
           {(
             [

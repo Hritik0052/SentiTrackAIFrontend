@@ -13,6 +13,7 @@ export interface PlanSummary {
   sort_order: number
   price_inr: number | null
   billing_period: string | null
+  duration_days: number | null
 }
 
 export interface QuotaBucket {
@@ -42,6 +43,7 @@ export interface PlanCreatePayload {
   sort_order?: number
   price_inr?: number | null
   billing_period?: string | null
+  duration_days?: number | null
 }
 
 export type PlanUpdatePayload = Partial<Omit<PlanCreatePayload, "code">>
@@ -104,6 +106,10 @@ export interface BillingMe {
   status: string | null
   payment_provider: string | null
   cashfree_order_id: string | null
+  starts_at: string | null
+  ends_at: string | null
+  days_remaining: number | null
+  is_expired: boolean
   cashfree_configured: boolean
   cashfree_env: string
 }

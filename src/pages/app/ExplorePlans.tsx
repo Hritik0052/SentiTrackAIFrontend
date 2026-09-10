@@ -9,13 +9,24 @@ import { openCashfreeCheckout } from "../../lib/cashfreeCheckout"
 import { useAuth } from "../../hooks/useAuth"
 import { usePageMeta } from "../../hooks/usePageMeta"
 import { billingService } from "../../services/billingService"
-import type { PlanSummary } from "../../types/billing"
+import type { BillingMe, PlanSummary } from "../../types/billing"
+
+function formatValidity(plan: PlanSummary): string {
+  const days = plan.duration_days
+  if (days == null || days <= 0) {
+    if (plan.billing_period === "yearly") return "365 days"
+    if (plan.billing_period === "trial") return "15 days"
+    return "30 days"
+  }
+  return `${days} day${days === 1 ? "" : "s"}`
+}
 
 function formatPrice(plan: PlanSummary): string {
-  if (plan.price_inr == null || plan.price_inr <= 0) return "Free"
-  const period =
-    plan.billing_period === "yearly" ? "/year" : plan.billing_period === "monthly" ? "/month" : ""
-  return `₹${plan.price_inr}${period}`
+  const validity = formatValidity(plan)
+  if (plan.price_inr == null || plan.price_inr <= 0) {
+    return `Free · ${validity}`
+  }
+  return `₹${plan.price_inr} / ${validity}`
 }
 
 export default function ExplorePlansPage() {
@@ -23,6 +34,7 @@ export default function ExplorePlansPage() {
 
   const { user } = useAuth()
   const [plans, setPlans] = useState<PlanSummary[]>([])
+  const [billing, setBilling] = useState<BillingMe | null>(null)
   const [currentCode, setCurrentCode] = useState<string | null>(user?.plan?.code ?? null)
   const [configured, setConfigured] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -33,11 +45,12 @@ export default function ExplorePlansPage() {
   useEffect(() => {
     let cancelled = false
     Promise.all([billingService.listPlans(), billingService.getBillingMe()])
-      .then(([list, billing]) => {
+      .then(([list, me]) => {
         if (cancelled) return
         setPlans(list.filter((p) => p.is_active).sort((a, b) => a.sort_order - b.sort_order))
-        setConfigured(billing.cashfree_configured)
-        setCurrentCode(billing.plan?.code ?? user?.plan?.code ?? null)
+        setBilling(me)
+        setConfigured(me.cashfree_configured)
+        setCurrentCode(me.is_expired ? null : me.plan?.code ?? user?.plan?.code ?? null)
       })
       .catch((err) => {
         if (!cancelled) {
@@ -82,8 +95,19 @@ export default function ExplorePlansPage() {
             Choose your plan
           </h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Plans and features load live from the server — update them anytime in Admin → Plans.
+            Every plan has a price and a validity window (days). Free is a limited trial; paid plans renew after their period.
           </p>
+          {billing && !billing.is_expired && billing.days_remaining != null && billing.plan && (
+            <p className="mt-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+              Current: {billing.plan.name} · {billing.days_remaining} day
+              {billing.days_remaining === 1 ? "" : "s"} left
+            </p>
+          )}
+          {billing?.is_expired && (
+            <p className="mt-3 text-sm font-medium text-amber-700 dark:text-amber-300">
+              Your membership expired. Choose a plan below to continue.
+            </p>
+          )}
         </div>
 
         {loading ? (
@@ -137,7 +161,10 @@ export default function ExplorePlansPage() {
                       </span>
                       <div>
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white">{plan.name}</h2>
-                        <p className="text-sm text-slate-500">{formatPrice(plan)}</p>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                          {formatPrice(plan)}
+                        </p>
+                        <p className="text-xs text-slate-500">Valid for {formatValidity(plan)}</p>
                       </div>
                     </div>
                     {plan.description && (
