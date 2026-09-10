@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Navigate, Outlet, useLocation } from "react-router-dom"
 import { useAuth } from "../../hooks/useAuth"
 import { tokenStorage } from "../../lib/tokenStorage"
@@ -8,9 +9,15 @@ export function AdminRoute() {
   const { user, isAuthenticated, isLoading } = useAuth()
   const location = useLocation()
   const hasToken = Boolean(tokenStorage.getAccessToken())
+  const brokenSession = !isLoading && hasToken && !user
 
-  // Wait for /users/me after login hard-redirect (token exists, user not hydrated yet).
-  if (isLoading || (hasToken && !user)) {
+  useEffect(() => {
+    if (brokenSession) {
+      tokenStorage.clear()
+    }
+  }, [brokenSession])
+
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spinner size="lg" />
@@ -18,7 +25,8 @@ export function AdminRoute() {
     )
   }
 
-  if (!isAuthenticated) {
+  // Bootstrap finished but session is broken (token without user) — don't spin forever.
+  if (brokenSession || !isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 

@@ -6,6 +6,8 @@ import { authService } from "../services/authService"
 import { AuthContext } from "./auth-context"
 import type { LoginPayload, RegisterPayload, User } from "../types/auth"
 
+const BOOTSTRAP_TIMEOUT_MS = 15000
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -15,27 +17,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function bootstrap() {
       if (!tokenStorage.getAccessToken()) {
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
         return
       }
+
       try {
-        const me = await authService.me()
+        const me = await Promise.race([
+          authService.me(),
+          new Promise<never>((_, reject) => {
+            window.setTimeout(
+              () => reject(new Error("Session check timed out")),
+              BOOTSTRAP_TIMEOUT_MS,
+            )
+          }),
+        ])
         if (!cancelled) setUser(me)
       } catch {
         tokenStorage.clear()
+        if (!cancelled) setUser(null)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
     }
 
-    bootstrap()
+    void bootstrap()
     return () => {
       cancelled = true
     }
   }, [])
 
   useEffect(() => {
-    const handleForcedLogout = () => setUser(null)
+    const handleForcedLogout = () => {
+      tokenStorage.clear()
+      setUser(null)
+      setIsLoading(false)
+    }
     window.addEventListener(AUTH_LOGOUT_EVENT, handleForcedLogout)
     return () => window.removeEventListener(AUTH_LOGOUT_EVENT, handleForcedLogout)
   }, [])
@@ -49,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       me.is_admin = true
     }
     setUser(me)
+    setIsLoading(false)
     return me
   }, [])
 
@@ -58,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenStorage.setTokens(tokens.access_token, tokens.refresh_token)
     const me = await authService.me()
     setUser(me)
+    setIsLoading(false)
     return me
   }, [])
 
@@ -65,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refreshToken = tokenStorage.getRefreshToken()
     tokenStorage.clear()
     setUser(null)
+    setIsLoading(false)
     if (refreshToken) {
       try {
         await authService.logout(refreshToken)

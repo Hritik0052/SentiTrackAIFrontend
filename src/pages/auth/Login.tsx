@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { LogIn, Mail, Lock } from "lucide-react"
@@ -15,7 +15,7 @@ import { usePageMeta } from "../../hooks/usePageMeta"
 export default function LoginPage() {
   usePageMeta("Login — SentiTrack AI", "Log in to your SentiTrack AI journal.")
 
-  const { login } = useAuth()
+  const { user, isAuthenticated, isLoading, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -26,15 +26,29 @@ export default function LoginPage() {
 
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
 
+  // Already signed in (e.g. deep link / race) — send them home instead of hanging on the form.
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      toast("You're already signed in", { icon: "ℹ️" })
+      goPostAuth(user)
+    }
+  }, [isLoading, isAuthenticated, user])
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (isAuthenticated && user) {
+      toast("You're already signed in", { icon: "ℹ️" })
+      goPostAuth(user)
+      return
+    }
+
     setSubmitting(true)
     try {
       const me = await login({ email, password })
       toast.success(me.is_admin ? "Welcome back, admin!" : "Welcome back!")
       if (me.is_admin === true) {
-        // Full page load so AdminRoute sees the user after bootstrap (no race).
         goPostAuth(me)
         return
       }

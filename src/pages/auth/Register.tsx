@@ -1,6 +1,6 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { FormEvent } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { Lock, Mail, User, UserPlus } from "lucide-react"
 import toast from "react-hot-toast"
 import { Button } from "../../components/ui/Button"
@@ -8,6 +8,7 @@ import { Container } from "../../components/ui/Container"
 import { GradientBlobs } from "../../components/ui/GradientBlobs"
 import { Logo } from "../../components/layout/Logo"
 import { ApiError } from "../../lib/apiClient"
+import { goPostAuth } from "../../lib/postAuthPath"
 import { useAuth } from "../../hooks/useAuth"
 import { usePageMeta } from "../../hooks/usePageMeta"
 
@@ -24,13 +25,19 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export default function RegisterPage() {
   usePageMeta("Sign up — SentiTrack AI", "Create your SentiTrack AI account.")
 
-  const { register } = useAuth()
-  const navigate = useNavigate()
+  const { user, isAuthenticated, isLoading, register } = useAuth()
 
   const [form, setForm] = useState<FormState>(EMPTY)
   const [fieldErrors, setFieldErrors] = useState<Partial<FormState>>({})
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      toast("You're already signed in", { icon: "ℹ️" })
+      goPostAuth(user)
+    }
+  }, [isLoading, isAuthenticated, user])
 
   function update(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -56,9 +63,18 @@ export default function RegisterPage() {
 
     setSubmitting(true)
     try {
-      await register({ name: form.name.trim(), email: form.email.trim(), password: form.password })
+      if (isAuthenticated && user) {
+        toast("You're already signed in", { icon: "ℹ️" })
+        goPostAuth(user)
+        return
+      }
+      const me = await register({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      })
       toast.success("Account created. Welcome to SentiTrack AI!")
-      navigate("/app/journals", { replace: true })
+      goPostAuth(me)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Something went wrong. Please try again."
       setError(message)
