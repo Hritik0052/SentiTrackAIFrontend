@@ -1,7 +1,7 @@
 import { useState } from "react"
 import type { FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Award, Lock, Mail, Save, Shield, Trash2, User as UserIcon } from "lucide-react"
+import { Award, KeyRound, Lock, Mail, Save, Shield, Trash2, User as UserIcon } from "lucide-react"
 import toast from "react-hot-toast"
 import { Button } from "../../components/ui/Button"
 import { Container } from "../../components/ui/Container"
@@ -20,9 +20,14 @@ export default function ProfilePage() {
 
   const [name, setName] = useState(user?.name ?? "")
   const [email, setEmail] = useState(user?.email ?? "")
-  const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [changingPassword, setChangingPassword] = useState(false)
 
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -33,10 +38,9 @@ export default function ProfilePage() {
     e.preventDefault()
     setError(null)
 
-    const payload: { name?: string; email?: string; password?: string } = {}
+    const payload: { name?: string; email?: string } = {}
     if (name.trim() && name.trim() !== user!.name) payload.name = name.trim()
     if (email.trim() && email.trim() !== user!.email) payload.email = email.trim()
-    if (password) payload.password = password
 
     if (Object.keys(payload).length === 0) {
       toast("Nothing to update", { icon: "ℹ️" })
@@ -47,12 +51,51 @@ export default function ProfilePage() {
     try {
       const updated = await userService.updateMe(payload)
       updateUser(updated)
-      setPassword("")
       toast.success("Profile updated")
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't update your profile.")
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleChangePassword(e: FormEvent) {
+    e.preventDefault()
+    setPasswordError(null)
+
+    if (!currentPassword) {
+      setPasswordError("Enter your current password.")
+      return
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters.")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirmation don't match.")
+      return
+    }
+    if (currentPassword === newPassword) {
+      setPasswordError("New password must be different from the current password.")
+      return
+    }
+
+    setChangingPassword(true)
+    try {
+      await userService.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      })
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      toast.success("Password updated")
+    } catch (err) {
+      setPasswordError(
+        err instanceof ApiError ? err.message : "Couldn't change your password.",
+      )
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -120,7 +163,7 @@ export default function ProfilePage() {
 
         <form onSubmit={handleSubmit} noValidate className="card-surface mt-8 p-6 sm:p-8">
           <h2 className="text-base font-semibold text-slate-900 dark:text-white">Account settings</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Update your name, email, or password.</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Update your name or email.</p>
 
           <div className="mt-6">
             <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -154,26 +197,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="mt-5">
-            <label
-              htmlFor="password"
-              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
-            >
-              New password <span className="font-normal text-slate-400">(leave blank to keep current)</span>
-            </label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className={inputBase}
-              />
-            </div>
-          </div>
-
           {error && (
             <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">
               {error}
@@ -183,6 +206,92 @@ export default function ProfilePage() {
           <div className="mt-6 flex justify-end">
             <Button type="submit" disabled={saving} icon={<Save className="h-4 w-4" />}>
               {saving ? "Saving..." : "Save changes"}
+            </Button>
+          </div>
+        </form>
+
+        <form onSubmit={handleChangePassword} noValidate className="card-surface mt-6 p-6 sm:p-8">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">Change password</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Enter your current password, then choose a new one.
+          </p>
+
+          <div className="mt-6">
+            <label
+              htmlFor="current-password"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Current password
+            </label>
+            <div className="relative">
+              <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+                className={inputBase}
+              />
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <label
+              htmlFor="new-password"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              New password
+            </label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className={inputBase}
+              />
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <label
+              htmlFor="confirm-password"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Confirm new password
+            </label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                id="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className={inputBase}
+              />
+            </div>
+          </div>
+
+          {passwordError && (
+            <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">
+              {passwordError}
+            </p>
+          )}
+
+          <div className="mt-6 flex justify-end">
+            <Button
+              type="submit"
+              disabled={changingPassword}
+              icon={<KeyRound className="h-4 w-4" />}
+            >
+              {changingPassword ? "Updating…" : "Update password"}
             </Button>
           </div>
         </form>
